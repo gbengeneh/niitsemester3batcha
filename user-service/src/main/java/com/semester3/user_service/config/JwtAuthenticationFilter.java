@@ -27,15 +27,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String header = req.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             final String token = header.substring(7);
-            if (jwtUtil.validateToken(token)) {
-                String username = jwtUtil.extractUsername(token);
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    var userDetails = userDetailsService.loadUserByUsername(username);
-                    UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+            try {
+                if (jwtUtil.validateToken(token)) {
+                    String username = jwtUtil.extractUsername(token);
+                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        var userDetails = userDetailsService.loadUserByUsername(username);
+                        UsernamePasswordAuthenticationToken auth =
+                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
                 }
+            } catch (Exception ignored) {
+                SecurityContextHolder.clearContext();
             }
         }
         chain.doFilter(req, res);

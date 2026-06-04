@@ -27,10 +27,10 @@ public class UserService {
     }
     @Transactional
     public User registerUser(RegisterRequest request){
-        if(userRepository.existByEmail(request.getEmail())){
+        if(userRepository.existsByEmail(request.getEmail())){
             throw new RuntimeException("Email already exist");
         }
-        if(userRepository.existByUsername(request.getUsername())){
+        if(userRepository.existsByUsername(request.getUsername())){
             throw new RuntimeException("Username already exists");
         }
         User user = new User();
@@ -47,10 +47,10 @@ public class UserService {
     }
     @Transactional
     public User createUserWithRole(RegisterRequest request, String roleName){
-        if(userRepository.existByEmail(request.getEmail())){
+        if(userRepository.existsByEmail(request.getEmail())){
             throw new RuntimeException("Email already Exist");
         }
-        if(userRepository.existByUsername(request.getUsername())){
+        if(userRepository.existsByUsername(request.getUsername())){
             throw new RuntimeException("Username is already taken ");
         }
 

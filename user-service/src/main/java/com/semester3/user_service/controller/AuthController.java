@@ -9,6 +9,7 @@ import com.semester3.user_service.util.JwtUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +30,7 @@ public class AuthController {
     }
 
     //Register
+    @PostMapping("/register")
     public ResponseEntity<AuthUserResponse> register(@RequestBody RegisterRequest request){
         User created = userService.registerUser(request);
 
@@ -47,6 +49,7 @@ public class AuthController {
        return ResponseEntity.ok(response);
     }
     //Login
+    @PostMapping("/login")
     public ResponseEntity<AuthUserResponse> login(@RequestBody LoginRequest request){
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -69,6 +72,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
    // Refresh token (rotating)
+    @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@RequestBody TokenRefreshRequest request){
         String requestToken = request.getRefreshToken();
 
@@ -84,6 +88,7 @@ public class AuthController {
     }
 
     // logout
+    @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestBody TokenRefreshRequest request){
         if(request.getRefreshToken() !=null && !request.getRefreshToken().isBlank()){
             refreshTokenService.findByToken(request.getRefreshToken())
