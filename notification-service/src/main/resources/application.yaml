@@ -1,0 +1,11 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: notification-service
+
+# Setting logging level to ensure our console output stands out clearly
+logging:
+  level:
+    com.example.notificationservice: INFO
