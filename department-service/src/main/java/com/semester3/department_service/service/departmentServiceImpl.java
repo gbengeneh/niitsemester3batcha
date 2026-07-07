@@ -3,24 +3,30 @@ package com.semester3.department_service.service;
 import com.semester3.department_service.dto.DepartmentDto;
 import com.semester3.department_service.entity.Department;
 import com.semester3.department_service.repository.DepartmentRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class departmentServiceImpl implements DepartmentService{
 
     private final DepartmentRepository departmentRepository;
 
+    public departmentServiceImpl(DepartmentRepository departmentRepository) {
+        this.departmentRepository = departmentRepository;
+    }
+
     @Override
     public DepartmentDto createDepartment(DepartmentDto departmentDto){
         Department department= mapToEntity(departmentDto);
-        department savedDepartment = departmentRepository.save(department);
+        Department savedDepartment = departmentRepository.save(department);
         return mapToDto(savedDepartment);
     }
     @Override
     public  DepartmentDto getDepartmentById(Long id){
         Department department = departmentRepository.findById(id)
                 .orElseThrow(()-> new RuntimeException("Department not found with is:" + id));
-        return mapToDto(department)
+        return mapToDto(department);
     }
 
     @Override

@@ -7,8 +7,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@RestController
+@RequestMapping("/api/departments")
 public class DepartmentController {
     private final DepartmentService departmentService;
+
+    public DepartmentController(DepartmentService departmentService) {
+        this.departmentService = departmentService;
+    }
 
     @PostMapping
     public DepartmentDto createDepartment(@Valid @RequestBody DepartmentDto departmentDto) {

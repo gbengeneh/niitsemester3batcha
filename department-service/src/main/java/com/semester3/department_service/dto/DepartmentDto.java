@@ -15,6 +15,6 @@ public class DepartmentDto {
     @NotBlank(message = "Department code is required")
     private String departmentCode;
     @NotBlank(message = "Department address is required")
-    private String getDepartmentAddress;
+    private String departmentAddress;
 
 }
