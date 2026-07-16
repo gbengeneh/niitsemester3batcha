@@ -38,8 +38,8 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        Role role = roleRepository.findByName("ROLE_USER")
-                .orElseGet(()-> roleRepository.save(new Role("ROLE_USER")));
+        Role role = roleRepository.findByName("ROLE_EMPLOYEE")
+                .orElseGet(()-> roleRepository.save(new Role("ROLE_EMPLOYEE")));
         Set<Role> roles = new HashSet<>();
         roles.add(role);
         user.setRoles(roles);

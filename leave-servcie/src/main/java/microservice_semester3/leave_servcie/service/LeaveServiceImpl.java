@@ -13,6 +13,8 @@ import microservice_semester3.leave_servcie.exception.ResourceNotFoundException;
 import microservice_semester3.leave_servcie.repository.LeaveRepository;
 import org.springframework.beans.factory.annotation.Value; // ADDED: Correct Spring import
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
@@ -54,6 +56,7 @@ public class LeaveServiceImpl implements LeaveService {
         EmployeeDto employee = webClientBuilder.build()
                 .get()
                 .uri(employeeServiceUrl + "/api/v1/employees/" + leave.getEmployeeId())
+                .headers(this::forwardAuthorization)
                 .retrieve()
                 .bodyToMono(EmployeeDto.class)
                 .block();
@@ -100,5 +103,18 @@ public class LeaveServiceImpl implements LeaveService {
         }
 
         return updatedLeave;
+    }
+
+    // employee-service now requires a valid JWT on every call, so the token on
+    // the incoming request is forwarded on the outbound call. There is no
+    // gateway in this system to do this centrally, so each caller does it.
+    private void forwardAuthorization(org.springframework.http.HttpHeaders headers) {
+        Object requestAttrs = RequestContextHolder.getRequestAttributes();
+        if (requestAttrs instanceof ServletRequestAttributes servletAttrs) {
+            String authHeader = servletAttrs.getRequest().getHeader("Authorization");
+            if (authHeader != null) {
+                headers.set("Authorization", authHeader);
+            }
+        }
     }
 }

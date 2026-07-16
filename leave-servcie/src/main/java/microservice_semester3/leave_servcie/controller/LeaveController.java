@@ -7,6 +7,7 @@ import microservice_semester3.leave_servcie.entity.Leave;
 import microservice_semester3.leave_servcie.service.LeaveService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,6 +41,7 @@ public class LeaveController {
         return ResponseEntity.ok(leaves);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/status")
     public ResponseEntity<Leave> updateStatus(
             @PathVariable Long id,

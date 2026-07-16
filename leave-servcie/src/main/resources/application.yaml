@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: 9006
 
 spring:
   application:
@@ -18,8 +18,15 @@ spring:
       enabled: true
 
 # Hardcoded service endpoints before moving to Spring Cloud Registry (Eureka)
+# (ports corrected to match each service's actual server.port)
 services:
   employee-service:
-    url: http://localhost:8081
+    url: http://localhost:9004
   notification-service:
-    url: http://localhost:8084
+    url: http://localhost:9005
+
+# Must be identical to user-service's app.jwt.secret - it is what lets this
+# service verify tokens issued by user-service without calling it.
+app:
+  jwt:
+    secret: ReplaceWithAStrongSecretAtLeast32CharsLong!

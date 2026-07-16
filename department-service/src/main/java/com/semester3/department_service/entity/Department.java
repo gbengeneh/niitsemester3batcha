@@ -17,4 +17,8 @@ public class Department {
     private String departmentName;
     private String departmentCode;
     private String departmentAddress;
+
+    // References organization - validated via a WebClient call before the
+    // department is persisted (see DepartmentService).
+    private Long organizationId;
 }

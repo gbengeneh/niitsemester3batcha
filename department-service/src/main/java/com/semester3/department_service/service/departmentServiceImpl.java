@@ -1,5 +1,6 @@
 package com.semester3.department_service.service;
 
+import com.semester3.department_service.client.DirectoryClient;
 import com.semester3.department_service.dto.DepartmentDto;
 import com.semester3.department_service.entity.Department;
 import com.semester3.department_service.repository.DepartmentRepository;
@@ -11,13 +12,16 @@ import java.util.List;
 public class departmentServiceImpl implements DepartmentService{
 
     private final DepartmentRepository departmentRepository;
+    private final DirectoryClient directoryClient;
 
-    public departmentServiceImpl(DepartmentRepository departmentRepository) {
+    public departmentServiceImpl(DepartmentRepository departmentRepository, DirectoryClient directoryClient) {
         this.departmentRepository = departmentRepository;
+        this.directoryClient = directoryClient;
     }
 
     @Override
     public DepartmentDto createDepartment(DepartmentDto departmentDto){
+        directoryClient.getOrganization(departmentDto.getOrganizationId());
         Department department= mapToEntity(departmentDto);
         Department savedDepartment = departmentRepository.save(department);
         return mapToDto(savedDepartment);
@@ -42,9 +46,12 @@ public class departmentServiceImpl implements DepartmentService{
         Department department = departmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Department not found with id: " + id));
 
+        directoryClient.getOrganization(departmentDto.getOrganizationId());
+
         department.setDepartmentName(departmentDto.getDepartmentName());
         department.setDepartmentCode(departmentDto.getDepartmentCode());
         department.setDepartmentAddress(departmentDto.getDepartmentAddress());
+        department.setOrganizationId(departmentDto.getOrganizationId());
 
         Department updatedDepartment = departmentRepository.save(department);
 
@@ -65,6 +72,7 @@ public class departmentServiceImpl implements DepartmentService{
                 .departmentName(department.getDepartmentName())
                 .departmentCode(department.getDepartmentCode())
                 .departmentAddress(department.getDepartmentAddress())
+                .organizationId(department.getOrganizationId())
                 .build();
     }
 
@@ -73,6 +81,7 @@ public class departmentServiceImpl implements DepartmentService{
                 .departmentName(departmentDto.getDepartmentName())
                 .departmentCode(departmentDto.getDepartmentCode())
                 .departmentAddress(departmentDto.getDepartmentAddress())
+                .organizationId(departmentDto.getOrganizationId())
                 .build();
     }
 

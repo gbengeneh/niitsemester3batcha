@@ -10,7 +10,8 @@ public class EmployeeMapper {
                 e.getId(),
                 e.getName(),
                 e.getPosition(),
-                e.getDepartment(),
+                e.getDepartmentId(),
+                e.getOrganizationId(),
                 e.getSalary()
         );
     }
@@ -21,7 +22,8 @@ public class EmployeeMapper {
                 dto.getId(),
                 dto.getName(),
                 dto.getPosition(),
-                dto.getDepartment(),
+                dto.getDepartmentId(),
+                dto.getOrganizationId(),
                 dto.getSalary()
         );
     }

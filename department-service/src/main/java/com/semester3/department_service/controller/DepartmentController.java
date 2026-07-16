@@ -3,6 +3,7 @@ package com.semester3.department_service.controller;
 import com.semester3.department_service.dto.DepartmentDto;
 import com.semester3.department_service.service.DepartmentService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +17,7 @@ public class DepartmentController {
         this.departmentService = departmentService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public DepartmentDto createDepartment(@Valid @RequestBody DepartmentDto departmentDto) {
         return departmentService.createDepartment(departmentDto);
@@ -31,6 +33,7 @@ public class DepartmentController {
         return departmentService.getAllDepartments();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public DepartmentDto updateDepartment(
             @PathVariable Long id,
@@ -39,6 +42,7 @@ public class DepartmentController {
         return departmentService.updateDepartment(id, departmentDto);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public String deleteDepartment(@PathVariable Long id) {
         departmentService.deleteDepartment(id);

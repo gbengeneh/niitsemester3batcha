@@ -1,5 +1,6 @@
 package com.semester3.employee_service.service;
 
+import com.semester3.employee_service.client.DirectoryClient;
 import com.semester3.employee_service.dto.EmployeeDTO;
 import com.semester3.employee_service.entity.Employee;
 import com.semester3.employee_service.exception.ResourceNotFoundException;
@@ -12,9 +13,11 @@ import java.util.List;
 @Service
 public class EmployeeService {
     private final EmployeeRepository repository;
+    private final DirectoryClient directoryClient;
 
-    public EmployeeService(EmployeeRepository repository){
+    public EmployeeService(EmployeeRepository repository, DirectoryClient directoryClient){
         this.repository=repository;
+        this.directoryClient = directoryClient;
     }
 
      public List<EmployeeDTO> getAllEmployees(){
@@ -30,6 +33,8 @@ public class EmployeeService {
     }
 
     public EmployeeDTO createEmployee(EmployeeDTO dto){
+        directoryClient.getDepartment(dto.getDepartmentId());
+        directoryClient.getOrganization(dto.getOrganizationId());
         Employee employee = EmployeeMapper.toEntity(dto);
         return EmployeeMapper.toDTO(repository.save(employee));
     }
@@ -37,9 +42,12 @@ public class EmployeeService {
     public EmployeeDTO updateEmployee(Long id, EmployeeDTO dto){
         Employee existing = repository.findById(id)
                 .orElseThrow(()->new ResourceNotFoundException("Employee not found"));
+        directoryClient.getDepartment(dto.getDepartmentId());
+        directoryClient.getOrganization(dto.getOrganizationId());
         existing.setName(dto.getName());
         existing.setPosition(dto.getPosition());
-        existing.setDepartment(dto.getDepartment());
+        existing.setDepartmentId(dto.getDepartmentId());
+        existing.setOrganizationId(dto.getOrganizationId());
         existing.setSalary(dto.getSalary());
         return EmployeeMapper.toDTO(repository.save(existing));
     }

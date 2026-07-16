@@ -4,6 +4,7 @@ import com.semester3.organization.dto.OrganizationDto;
 import com.semester3.organization.service.OrganizationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +16,7 @@ public class OrganizationController {
 
     private final OrganizationService organizationService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public OrganizationDto createOrganization(@Valid @RequestBody OrganizationDto organizationDto) {
         return organizationService.createOrganization(organizationDto);
@@ -30,6 +32,7 @@ public class OrganizationController {
         return organizationService.getAllOrganizations();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public OrganizationDto updateOrganization(
             @PathVariable Long id,
@@ -38,6 +41,7 @@ public class OrganizationController {
         return organizationService.updateOrganization(id, organizationDto);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public String deleteOrganization(@PathVariable Long id) {
         organizationService.deleteOrganization(id);
