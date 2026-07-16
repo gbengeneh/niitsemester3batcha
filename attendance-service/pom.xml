@@ -64,14 +64,10 @@
             <optional>true</optional>
         </dependency>
 
-        <!--
-          Uncomment once you wire this service into Eureka (step 8 in your teaching order):
-
-          <dependency>
-              <groupId>org.springframework.cloud</groupId>
-              <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-          </dependency>
-        -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -80,7 +76,6 @@
         </dependency>
     </dependencies>
 
-    <!--
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -92,7 +87,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-    -->
 
     <build>
         <plugins>

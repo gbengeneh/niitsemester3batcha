@@ -13,11 +13,10 @@ import org.springframework.web.bind.annotation.PathVariable;
  */
 @FeignClient(
     name = "employee-service",
-    url = "${employee.service.url}",
     configuration = FeignConfig.class
 )
 public interface EmployeeClient {
 
-    @GetMapping("/api/employees/{id}/exists")
+    @GetMapping("/api/v1/employees/{id}/exists")
     ResponseEntity<Boolean> employeeExists(@PathVariable("id") Long id);
 }

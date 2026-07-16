@@ -55,6 +55,17 @@
 			<artifactId>spring-cloud-starter-openfeign</artifactId>
 		</dependency>
 
+		<!-- Service discovery: registers with Eureka and lets EmployeeClient
+		     resolve "employee-service" by name instead of a hardcoded URL -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-loadbalancer</artifactId>
+		</dependency>
+
 		<!-- DB -->
 		<dependency>
 			<groupId>org.postgresql</groupId>

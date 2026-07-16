@@ -34,7 +34,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/h2-console/**",
-                                "/actuator/*"
+                                "/actuator/*",
+                                "/api/v1/employees/*/exists"
                         ).permitAll()
                         // Reads are open to any authenticated caller (ADMIN or EMPLOYEE);
                         // writes are further restricted with @PreAuthorize on the controller.

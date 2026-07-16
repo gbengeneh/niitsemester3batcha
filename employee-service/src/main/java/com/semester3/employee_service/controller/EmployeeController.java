@@ -31,6 +31,16 @@ public class EmployeeController {
         return employeeService.getEmployeeById(id);
     }
 
+    // Unauthenticated on purpose: payroll-service's EmployeeClient calls this
+    // to validate an employeeId before generating a payslip, and payroll-service
+    // doesn't currently forward a caller JWT (see EmployeeClient / SecurityConfig
+    // there - it authenticates with its own HR_ADMIN/FINANCE roles, not the
+    // shared ROLE_ADMIN/ROLE_EMPLOYEE JWT used elsewhere in this system).
+    @GetMapping("/{id}/exists")
+    public ResponseEntity<Boolean> employeeExists(@PathVariable Long id){
+        return ResponseEntity.ok(employeeService.existsById(id));
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public EmployeeDTO createEmployee(@RequestBody @Valid EmployeeDTO dto){

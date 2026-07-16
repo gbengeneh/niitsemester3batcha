@@ -31,6 +31,13 @@ This is created by `user-service`'s `AdminBootstrapConfig` on first startup —
 
 ## 2. How authorization flows without a gateway
 
+> **Update:** Eureka (`eureka-server`) and a routing-only `api-gateway` now
+> exist — see [SERVICE_DISCOVERY.md](SERVICE_DISCOVERY.md). The gateway does
+> **not** verify JWTs itself (see that doc's "what's still true" section), so
+> everything below about every service independently verifying the JWT is
+> still accurate. What changed is *how a service finds another service's
+> address* (Eureka, not a hardcoded port) — not who checks the token.
+
 There is no API gateway or service registry in this system (no Eureka, no
 Spring Cloud Gateway) — every service runs standalone on a fixed port and
 calls the others by hardcoded URL. That has one important consequence for
@@ -211,15 +218,21 @@ curl -X PUT "http://localhost:9006/api/v1/leaves/1/status?status=APPROVED" \
 
 ## 6. Known simplifications, and good next exercises for students
 
-1. **No API gateway.** Every service duplicates the JWT-verification filter,
-   and every service-to-service call has to manually forward the
-   `Authorization` header. *Exercise: introduce Spring Cloud Gateway in front
-   of everything, move JWT verification there once, and delete the duplicated
-   `security` packages from the downstream services.*
-2. **No service discovery.** URLs are hardcoded per service, which is exactly
-   how the `leave-servcie` port bugs (§3) happened in the first place.
-   *Exercise: add Eureka and switch `WebClient` calls to use logical service
-   names instead of `localhost:PORT`.*
+1. **API gateway exists now, but only for routing.** `api-gateway` (see
+   [SERVICE_DISCOVERY.md](SERVICE_DISCOVERY.md)) fronts every service on one
+   port, but it does not verify JWTs — every service still duplicates the
+   JWT-verification filter, and service-to-service calls still have to
+   manually forward the `Authorization` header (unchanged from below).
+   *Exercise: move JWT verification into a gateway filter and delete the
+   duplicated `security` packages from the downstream services.*
+2. **Service discovery exists now for finding services, not yet for calling
+   them.** All 8 services register with `eureka-server` and the gateway
+   routes by discovered name. But `department-service`'s and
+   `employee-service`'s `DirectoryClient`, and `leave-servcie`'s
+   `LeaveServiceImpl`, still call each other by hardcoded `localhost:PORT`
+   (see §4's table) rather than through Eureka. *Exercise: switch those
+   `WebClient` calls to a load-balanced client (`lb://organization`, etc.) the
+   same way `payroll-services`'s `EmployeeClient` already does.*
 3. **The secret is copy-pasted six times.** Rotating it means editing six
    files and restarting every service in the right order. *Exercise: pull
    `app.jwt.secret` from a Spring Cloud Config server or an environment
