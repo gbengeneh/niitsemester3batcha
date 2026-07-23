@@ -40,6 +40,10 @@ eureka:
   instance:
     prefer-ip-address: true
 
+app:
+  jwt:
+    secret: ReplaceWithAStrongSecretAtLeast32CharsLong!
+
 management:
   endpoints:
     web:

@@ -26,6 +26,11 @@ public class AdminBootstrapConfig {
                     .orElseGet(() -> roleRepository.save(new Role("ROLE_ADMIN")));
             roleRepository.findByName("ROLE_EMPLOYEE")
                     .orElseGet(() -> roleRepository.save(new Role("ROLE_EMPLOYEE")));
+            // Needed for payroll-services, which gates endpoints on these roles
+            roleRepository.findByName("ROLE_HR_ADMIN")
+                    .orElseGet(() -> roleRepository.save(new Role("ROLE_HR_ADMIN")));
+            roleRepository.findByName("ROLE_FINANCE")
+                    .orElseGet(() -> roleRepository.save(new Role("ROLE_FINANCE")));
 
             if (!userRepository.existsByEmail("admin@example.com")) {
                 User admin = new User();
