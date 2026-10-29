@@ -1,0 +1,142 @@
+import urllib.request, json, base64, random, sys
+
+results = []
+s = 0
+
+def test(name, url, method="GET", data=None, headers=None, auth=None):
+    global s
+    try:
+        req = urllib.request.Request(url, method=method)
+        if headers:
+            for k, v in headers.items():
+                req.add_header(k, v)
+        if data:
+            req.add_header("Content-Type", "application/json")
+            req.data = json.dumps(data).encode()
+        if auth:
+            enc = base64.b64encode(f"{auth[0]}:{auth[1]}".encode()).decode()
+            req.add_header("Authorization", f"Basic {enc}")
+        resp = urllib.request.urlopen(req, timeout=10)
+        body = resp.read().decode()
+        s += 1
+        results.append((s, name, resp.status, "OK", body[:120]))
+        print(f"  [{resp.status}] {name}")
+        return body
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()[:200]
+        s += 1
+        ok = "OK" if ("expect 403" in name.lower() and e.code == 403) else "FAIL"
+        results.append((s, name, e.code, ok, body[:80]))
+        print(f"  [{e.code}] {name} - {ok}")
+        return body
+    except Exception as e:
+        s += 1
+        results.append((s, name, 0, "ERROR", str(e)[:80]))
+        print(f"  [ERR] {name} - {e}")
+        return None
+
+rand = random.randint(10000, 99999)
+
+print("=" * 60)
+print("  RUNNING END-TO-END TESTS")
+print("  " + time.strftime("%Y-%m-%d %H:%M:%S"))
+print("=" * 60)
+
+# === 1. LOGIN ===
+print("\n--- 1. LOGIN (get JWT token) ---")
+body = test("POST /api/auth/login", "http://localhost:9001/api/auth/login", "POST",
+     {"username": "admin", "password": "Admin@123"})
+if not body:
+    print("  FAILED: user-service may not be running")
+    sys.exit(1)
+data = json.loads(body)
+token = data["accessToken"]
+print(f"  User: {data['username']} | Roles: {[r['name'] for r in data['roles']]}")
+h = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+# === 2. GATEWAY ===
+print("\n--- 2. GATEWAY (proxy check) ---")
+test("GET /actuator/health", "http://localhost:9080/actuator/health")
+
+# === 3. ORGANIZATION ===
+print("\n--- 3. ORGANIZATION CRUD ---")
+test("GET /api/organizations", "http://localhost:9080/api/organizations", headers=h)
+body = test("POST /api/organizations", "http://localhost:9080/api/organizations", "POST",
+    {"name": f"Org{rand}", "address": "1 Main St", "email": f"o{rand}@t.com",
+     "phone": "555-0100", "website": "org.com"}, h)
+org_id = json.loads(body)["id"] if body else 0
+print(f"  Created organization ID: {org_id}")
+
+# === 4. DEPARTMENT ===
+print("\n--- 4. DEPARTMENT CRUD ---")
+body = test("POST /api/departments", "http://localhost:9080/api/departments", "POST",
+    {"departmentName": "Engineering", "departmentCode": "ENG",
+     "departmentAddress": "Floor 2", "organizationId": org_id}, h)
+dept_id = json.loads(body)["id"] if body else 0
+print(f"  Created department ID: {dept_id}")
+
+# === 5. EMPLOYEE ===
+print("\n--- 5. EMPLOYEE CRUD ---")
+body = test("POST /api/v1/employees", "http://localhost:9080/api/v1/employees", "POST",
+    {"name": "Jane Smith", "position": "Backend Dev",
+     "departmentId": dept_id, "organizationId": org_id, "salary": "60000"}, h)
+emp_id = json.loads(body)["id"] if body else 0
+print(f"  Created employee ID: {emp_id}")
+if emp_id:
+    test("GET /api/v1/employees/{id}/exists (no auth)", f"http://localhost:9080/api/v1/employees/{emp_id}/exists")
+
+# === 6. LEAVE ===
+print("\n--- 6. LEAVE MANAGEMENT ---")
+test("POST /api/v1/leaves", "http://localhost:9080/api/v1/leaves", "POST",
+    {"employeeId": emp_id, "leaveType": "ANNUAL", "startDate": "2026-09-01",
+     "endDate": "2026-09-05", "reason": "Vacation"}, h)
+
+# === 7. NOTIFICATION ===
+print("\n--- 7. NOTIFICATION (no auth) ---")
+test("POST /api/v1/notifications/email", "http://localhost:9080/api/v1/notifications/email", "POST",
+    {"to": "a@b.com", "subject": "Test", "body": "Hello"})
+
+# === 8. PAYROLL ===
+print("\n--- 8. PAYROLL (httpBasic) ---")
+test("POST /api/payroll", "http://localhost:9080/api/payroll", "POST",
+    {"employeeId": emp_id, "payPeriod": "2026-10", "basicSalary": 60000,
+     "allowances": 5000, "deductions": 2000, "grossPay": 65000, "netPay": 63000},
+    auth=("admin", "admin"))
+test("GET /api/payroll/{id}", f"http://localhost:9080/api/payroll/{emp_id}", auth=("admin", "admin"))
+
+# === 9. ATTENDANCE ===
+print("\n--- 9. ATTENDANCE (httpBasic) ---")
+try:
+    urllib.request.urlopen(urllib.request.Request("http://localhost:9007/api/attendance"), timeout=3)
+    print("  [200] Attendance accessible")
+except urllib.error.HTTPError as e:
+    print(f"  [{e.code}] Attendance needs httpBasic auth (expected)")
+
+# === 10. RBAC ===
+print("\n--- 10. RBAC (register + verify 403) ---")
+body = test("POST /api/auth/register", "http://localhost:9001/api/auth/register", "POST",
+    {"username": f"user{rand}", "email": f"u{rand}@t.com", "password": "Passw0rd!"})
+emp_token = json.loads(body)["accessToken"] if body else ""
+if emp_token:
+    print("  Non-admin user registered")
+    test("POST /api/departments (expect 403)", "http://localhost:9080/api/departments", "POST",
+        {"departmentName": "Sales", "departmentCode": "SAL",
+         "departmentAddress": "F1", "organizationId": org_id},
+        {"Authorization": f"Bearer {emp_token}", "Content-Type": "application/json"})
+
+# === 11. USER MANAGEMENT ===
+print("\n--- 11. USER MANAGEMENT (admin only) ---")
+test("GET /api/auth/users", "http://localhost:9080/api/auth/users", headers=h)
+
+# === SUMMARY ===
+print("\n" + "=" * 60)
+print("  TEST RESULTS")
+print("=" * 60)
+import time
+oks = [r for r in results if r[3] == "OK"]
+fails = [r for r in results if r[3] == "FAIL"]
+for _, name, code, status, msg in results:
+    sym = {"OK": "PASS", "FAIL": "FAIL", "ERROR": "FAIL"}[status]
+    print(f"  {sym} [{code}] {name}")
+print(f"\n  PASSED: {len(oks)}/{len(results)}  |  FAILED: {len(fails)}")
+print("=" * 60)

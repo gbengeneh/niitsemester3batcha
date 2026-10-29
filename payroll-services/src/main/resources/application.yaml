@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/payroll_db?createDatabaseIfNotExist=true
     username: postgres
-    password: 123
+    password: Bolu1101
     driver-class-name: org.postgresql.Driver
 
 

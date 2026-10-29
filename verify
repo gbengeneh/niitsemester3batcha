@@ -1,0 +1,137 @@
+import urllib.request, json, base64, sys
+
+results = []
+s = 0
+
+def t(name, url, method="GET", data=None, headers=None, auth=None):
+    global s
+    try:
+        req = urllib.request.Request(url, method=method)
+        if headers:
+            for k, v in headers.items():
+                req.add_header(k, v)
+        if data:
+            req.add_header("Content-Type", "application/json")
+            req.data = json.dumps(data).encode()
+        if auth:
+            enc = base64.b64encode(f"{auth[0]}:{auth[1]}".encode()).decode()
+            req.add_header("Authorization", f"Basic {enc}")
+        
+        resp = urllib.request.urlopen(req, timeout=10)
+        body = resp.read().decode()
+        s += 1
+        results.append((s, name, resp.status, "OK"))
+        print(f"  [{resp.status}] {name}")
+        if body:
+            print(f"    {body[:160].replace(chr(10),' ')}")
+        return body
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()[:200]
+        s += 1
+        ok = "OK" if ("expect 403" in name.lower() and e.code == 403) else "FAIL"
+        results.append((s, name, e.code, ok))
+        print(f"  [{e.code}] {name} - {ok}")
+        if body.strip():
+            print(f"    {body[:160]}")
+        return body
+    except Exception as e:
+        s += 1
+        results.append((s, name, 0, "ERROR"))
+        print(f"  [ERR] {name} - {e}")
+        return None
+
+print("=" * 65)
+print("  VERIFYING ALL MICROSERVICE ENDPOINTS")
+print("  " + "=" * 50)
+print()
+
+# 1
+print("--- 1. User Login (JWT auth) ---")
+r = t("POST /api/auth/login", "http://localhost:9001/api/auth/login", "POST",
+      {"username": "admin", "password": "Admin@123"})
+if not r:
+    print("  Services not running. Exiting.")
+    sys.exit(1)
+token = json.loads(r)["accessToken"]
+print(f"  Token received: {token[:45]}...")
+h = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+# 2
+print("\n--- 2. Gateway ---")
+t("GET /actuator/health", "http://localhost:9080/actuator/health")
+
+# 3
+print("\n--- 3. Organization CRUD (JWT required - ADMIN only for writes) ---")
+t("GET /api/organizations", "http://localhost:9080/api/organizations", headers=h)
+r = t("POST /api/organizations", "http://localhost:9080/api/organizations", "POST",
+      {"name":"OrgTest","address":"1 St","email":"o@t.com","phone":"555","website":"o.com"}, h)
+org = json.loads(r)["id"] if r else 0
+t("GET /api/organizations/{id}", f"http://localhost:9080/api/organizations/{org}", headers=h)
+
+# 4
+print("\n--- 4. Department CRUD (JWT required - ADMIN only for writes) ---")
+r = t("POST /api/departments", "http://localhost:9080/api/departments", "POST",
+      {"departmentName":"Engineering","departmentCode":"ENG","departmentAddress":"Floor 2","organizationId":org}, h)
+dpt = json.loads(r)["id"] if r else 0
+
+# 5
+print("\n--- 5. Employee CRUD (JWT required - ADMIN only for writes) ---")
+r = t("POST /api/v1/employees", "http://localhost:9080/api/v1/employees", "POST",
+      {"name":"Jane","position":"Dev","departmentId":dpt,"organizationId":org,"salary":"60000"}, h)
+emp = json.loads(r)["id"] if r else 0
+if emp:
+    t("GET /api/v1/employees/{id}/exists (NO AUTH)", f"http://localhost:9080/api/v1/employees/{emp}/exists")
+
+# 6
+print("\n--- 6. Leave Management (JWT required - ADMIN for approve) ---")
+t("POST /api/v1/leaves", "http://localhost:9080/api/v1/leaves", "POST",
+  {"employeeId":emp,"leaveType":"ANNUAL","startDate":"2026-09-01","endDate":"2026-09-05","reason":"Vacation"}, h)
+
+# 7
+print("\n--- 7. Notifications (NO AUTH required) ---")
+t("POST /api/v1/notifications/email", "http://localhost:9080/api/v1/notifications/email", "POST",
+  {"to":"a@b.com","subject":"Hi","body":"Hello"})
+
+# 8
+print("\n--- 8. Payroll (httpBasic auth: admin/admin) ---")
+t("POST /api/payroll", "http://localhost:9080/api/payroll", "POST",
+  {"employeeId":emp,"payPeriod":"2026-10","basicSalary":55000,"allowances":5000,"deductions":2000,"grossPay":60000,"netPay":58000},
+  auth=("admin","admin"))
+t("GET /api/payroll/{empId}", f"http://localhost:9080/api/payroll/{emp}", auth=("admin","admin"))
+
+# 9
+print("\n--- 9. Attendance (httpBasic required) ---")
+try:
+    urllib.request.urlopen(urllib.request.Request("http://localhost:9007/api/attendance"), timeout=3)
+    print("  [200] Attendance accessible")
+except urllib.error.HTTPError as e:
+    print(f"  [{e.code}] Attendance - needs httpBasic credentials (expected)")
+
+# 10
+print("\n--- 10. RBAC (non-admin gets 403 on admin endpoints) ---")
+import random
+su = random.randint(10000, 99999)
+r = t("POST /api/auth/register", "http://localhost:9001/api/auth/register", "POST",
+      {"username":f"u{su}","email":f"u{su}@t.com","password":"Passw0rd!"})
+et = json.loads(r)["accessToken"] if r else ""
+if et:
+    t("POST /api/departments (expect 403)", "http://localhost:9080/api/departments", "POST",
+      {"departmentName":"Sales","departmentCode":"SAL","departmentAddress":"F1","organizationId":org},
+      {"Authorization":f"Bearer {et}","Content-Type":"application/json"})
+
+# 11
+print("\n--- 11. User Management (ADMIN only) ---")
+t("GET /api/auth/users", "http://localhost:9080/api/auth/users", headers=h)
+
+# Summary
+print("\n" + "=" * 65)
+print("  RESULTS")
+print("=" * 65)
+oks = sum(1 for _, _, _, r in results if r == "OK")
+fails = sum(1 for _, _, _, r in results if r == "FAIL")
+for sn, name, code, r in results:
+    sym = {"OK": "OK", "FAIL": "XX", "ERROR": "!!"}[r]
+    print(f"  {sym} [{code}] {name}")
+print()
+print(f"  PASSED: {oks} | FAILED: {fails} | TOTAL: {len(results)}")
+print("=" * 65)
